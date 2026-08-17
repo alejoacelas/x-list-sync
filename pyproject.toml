@@ -1,0 +1,16 @@
+[project]
+name = "x-list-sync"
+version = "0.1.0"
+description = "Resumably mirror selected X follow graphs into private Lists."
+requires-python = ">=3.11"
+dependencies = [
+  "requests>=2.32,<3",
+  "requests-oauthlib>=2,<3",
+]
+
+[project.scripts]
+x-list-sync = "x_list_sync:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+

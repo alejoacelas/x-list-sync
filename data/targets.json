@@ -1,0 +1,12 @@
+[
+  {"name":"Patrick Collison","handle":"patrickc","list_name":"Patrick Collison follows","list_id":"2089190732439470542","known_empty":true},
+  {"name":"Agnes Callard","handle":"AgnesCallard","list_name":"Agnes Callard follows","list_id":"2089193065697132876","known_empty":true},
+  {"name":"Luca de Leo","handle":"lvcadeleo","list_name":"Luca de Leo follows","list_id":"2089193049683366054","known_empty":true},
+  {"name":"Tyler Cowen","handle":"tylercowen","list_name":"Following — Tyler Cowen","list_id":"2089188874572402890","known_empty":false},
+  {"name":"Gavin Leech","handle":"gleech","list_name":"Gavin Leech follows","list_id":null,"known_empty":true},
+  {"name":"Amanda Askell","handle":"AmandaAskell","list_name":"Amanda Askell follows","list_id":null,"known_empty":true},
+  {"name":"Paul Graham","handle":"paulg","list_name":"Following — Paul Graham","list_id":"2089188921271857478","known_empty":false},
+  {"name":"Nabeel Qureshi","handle":"nabeelqu","list_name":"Nabeel Qureshi follows","list_id":"2089189116072063109","known_empty":false},
+  {"name":"Andrej Karpathy","handle":"karpathy","list_name":"Andrej Karpathy follows","list_id":null,"known_empty":true}
+]
+
