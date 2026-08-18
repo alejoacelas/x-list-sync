@@ -113,29 +113,47 @@ class XClient:
         self.budget.require(expected_cost, cost_label)
         if is_write:
             self.limiter.acquire()
-        for attempt in range(6):
-            response = self.session.request(
-                method,
-                API + path,
-                params=params,
-                json=body,
-                timeout=45,
-            )
+        transient_failures = 0
+        while True:
+            try:
+                response = self.session.request(
+                    method,
+                    API + path,
+                    params=params,
+                    json=body,
+                    timeout=45,
+                )
+            except requests.RequestException as exc:
+                transient_failures += 1
+                if transient_failures >= 6:
+                    raise
+                delay = min(60, 2 ** (transient_failures - 1))
+                print(
+                    f"X connection error; retrying in {delay}s: {exc}",
+                    flush=True,
+                )
+                time.sleep(delay)
+                continue
             if response.status_code == 429:
                 reset = int(response.headers.get("x-rate-limit-reset", "0") or 0)
                 delay = max(5, reset - int(time.time()) + 2) if reset else 905
                 print(f"X rate limit; waiting {delay}s", flush=True)
                 time.sleep(delay)
                 continue
-            if response.status_code >= 500 and attempt < 5:
-                time.sleep(min(60, 2**attempt))
+            if response.status_code >= 500:
+                transient_failures += 1
+                if transient_failures >= 6:
+                    detail = response.text[:1000]
+                    raise RuntimeError(
+                        f"{method} {path} -> {response.status_code}: {detail}"
+                    )
+                time.sleep(min(60, 2 ** (transient_failures - 1)))
                 continue
             if not response.ok:
                 detail = response.text[:1000]
                 raise RuntimeError(f"{method} {path} -> {response.status_code}: {detail}")
             self.budget.charge(expected_cost)
             return response.json()
-        raise RuntimeError(f"{method} {path} exhausted retries")
 
 
 def target_state(state: dict[str, Any], handle: str) -> dict[str, Any]:
