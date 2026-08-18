@@ -74,19 +74,15 @@ class WriteLimiter:
     def __init__(self, limit: int = 295, window_seconds: int = 900) -> None:
         self.limit = limit
         self.window_seconds = window_seconds
-        self.started = time.monotonic()
-        self.used = 0
+        self.interval = window_seconds / limit
+        self.next_allowed = time.monotonic()
 
     def acquire(self) -> None:
-        if self.used < self.limit:
-            self.used += 1
-            return
-        remaining = self.window_seconds - (time.monotonic() - self.started) + 2
+        now = time.monotonic()
+        remaining = self.next_allowed - now
         if remaining > 0:
-            print(f"Rate window full; waiting {remaining:.0f}s", flush=True)
             time.sleep(remaining)
-        self.started = time.monotonic()
-        self.used = 1
+        self.next_allowed = max(self.next_allowed, time.monotonic()) + self.interval
 
 
 class XClient:

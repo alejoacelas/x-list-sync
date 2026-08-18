@@ -1,6 +1,13 @@
 import requests
 
-from x_list_sync import Budget, XAPIError, XClient, add_members, load_targets
+from x_list_sync import (
+    Budget,
+    WriteLimiter,
+    XAPIError,
+    XClient,
+    add_members,
+    load_targets,
+)
 
 
 def test_budget_stops_before_overspend():
@@ -11,6 +18,19 @@ def test_budget_stops_before_overspend():
         assert "Budget stop" in str(exc)
     else:
         raise AssertionError("budget should stop")
+
+
+def test_write_limiter_spreads_requests_across_window(monkeypatch):
+    clock = iter([0.0, 0.0, 0.0, 0.0, 0.0])
+    sleeps = []
+    monkeypatch.setattr("x_list_sync.time.monotonic", lambda: next(clock))
+    monkeypatch.setattr("x_list_sync.time.sleep", sleeps.append)
+    limiter = WriteLimiter(limit=2, window_seconds=10)
+
+    limiter.acquire()
+    limiter.acquire()
+
+    assert sleeps == [5.0]
 
 
 def test_target_list_names_fit_x_limit():
