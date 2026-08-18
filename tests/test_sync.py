@@ -1,6 +1,6 @@
 import requests
 
-from x_list_sync import Budget, XClient, load_targets
+from x_list_sync import Budget, XAPIError, XClient, add_members, load_targets
 
 
 def test_budget_stops_before_overspend():
@@ -61,3 +61,32 @@ def test_request_retries_connection_reset(monkeypatch):
 
     assert result == {"data": {"ok": True}}
     assert client.budget.spent == 0.01
+
+
+def test_add_members_skips_forbidden_account(monkeypatch):
+    class Client:
+        budget = Budget(1.0)
+
+        def request(self, *args, body, **kwargs):
+            if body["user_id"] == "blocked":
+                raise XAPIError("POST", "/lists/1/members", 403, "forbidden")
+            return {"data": {"is_member": True}}
+
+    monkeypatch.setattr("x_list_sync.save_state", lambda *args: None)
+    item = {"roster_count": 2}
+
+    writes = add_members(
+        Client(),
+        {"name": "Test", "list_name": "Test"},
+        "1",
+        ["blocked", "allowed"],
+        set(),
+        item,
+        {},
+        0,
+    )
+
+    assert writes == 1
+    assert item["member_ids"] == ["allowed"]
+    assert item["skipped_member_ids"] == ["blocked"]
+    assert item["complete"] is True

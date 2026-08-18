@@ -26,6 +26,12 @@ LIST_CREATE = 0.010
 LIST_MANAGE = 0.005
 
 
+class XAPIError(RuntimeError):
+    def __init__(self, method: str, path: str, status: int, detail: str) -> None:
+        super().__init__(f"{method} {path} -> {status}: {detail}")
+        self.status = status
+
+
 def load_dotenv(path: Path = ROOT / ".env") -> None:
     if not path.exists():
         return
@@ -144,14 +150,12 @@ class XClient:
                 transient_failures += 1
                 if transient_failures >= 6:
                     detail = response.text[:1000]
-                    raise RuntimeError(
-                        f"{method} {path} -> {response.status_code}: {detail}"
-                    )
+                    raise XAPIError(method, path, response.status_code, detail)
                 time.sleep(min(60, 2 ** (transient_failures - 1)))
                 continue
             if not response.ok:
                 detail = response.text[:1000]
-                raise RuntimeError(f"{method} {path} -> {response.status_code}: {detail}")
+                raise XAPIError(method, path, response.status_code, detail)
             self.budget.charge(expected_cost)
             return response.json()
 
@@ -302,19 +306,32 @@ def add_members(
     max_writes: int,
 ) -> int:
     writes = 0
+    skipped = set(item.get("skipped_member_ids", []))
     for user_id in roster:
-        if user_id in existing:
+        if user_id in existing or user_id in skipped:
             continue
         if max_writes and writes >= max_writes:
             break
-        payload = client.request(
-            "POST",
-            f"/lists/{list_id}/members",
-            body={"user_id": user_id},
-            expected_cost=LIST_MANAGE,
-            cost_label=f"add member to {target['list_name']}",
-            is_write=True,
-        )
+        try:
+            payload = client.request(
+                "POST",
+                f"/lists/{list_id}/members",
+                body={"user_id": user_id},
+                expected_cost=LIST_MANAGE,
+                cost_label=f"add member to {target['list_name']}",
+                is_write=True,
+            )
+        except XAPIError as exc:
+            if exc.status != 403:
+                raise
+            skipped.add(user_id)
+            item["skipped_member_ids"] = sorted(skipped)
+            save_state(state, client.budget)
+            print(
+                f"{target['name']}: skipped one account X would not allow",
+                flush=True,
+            )
+            continue
         if not payload.get("data", {}).get("is_member"):
             raise RuntimeError(f"X did not confirm member {user_id} for list {list_id}")
         existing.add(user_id)
@@ -327,7 +344,7 @@ def add_members(
                 f"(${client.budget.spent:.3f})",
                 flush=True,
             )
-    item["complete"] = len(existing) >= item["roster_count"]
+    item["complete"] = len(existing | skipped) >= item["roster_count"]
     save_state(state, client.budget)
     return writes
 
