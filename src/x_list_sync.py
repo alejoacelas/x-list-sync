@@ -143,7 +143,15 @@ class XClient:
             if response.status_code == 429:
                 reset = int(response.headers.get("x-rate-limit-reset", "0") or 0)
                 delay = max(5, reset - int(time.time()) + 2) if reset else 905
-                print(f"X rate limit; waiting {delay}s", flush=True)
+                limit = response.headers.get("x-rate-limit-limit", "unknown")
+                remaining = response.headers.get("x-rate-limit-remaining", "unknown")
+                reset_label = str(reset) if reset else "unknown"
+                print(
+                    "X rate limit: "
+                    f"limit={limit}, remaining={remaining}, reset={reset_label}; "
+                    f"waiting {delay}s",
+                    flush=True,
+                )
                 time.sleep(delay)
                 continue
             if response.status_code >= 500:

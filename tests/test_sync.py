@@ -63,6 +63,47 @@ def test_request_retries_connection_reset(monkeypatch):
     assert client.budget.spent == 0.01
 
 
+def test_rate_limit_reports_assigned_headers(monkeypatch, capsys):
+    class Response:
+        status_code = 429
+        ok = False
+        headers = {
+            "x-rate-limit-limit": "50",
+            "x-rate-limit-remaining": "0",
+            "x-rate-limit-reset": "200",
+        }
+
+    responses = iter([Response(), successful_response()])
+
+    class Session:
+        def request(self, *args, **kwargs):
+            return next(responses)
+
+    client = XClient.__new__(XClient)
+    client.session = Session()
+    client.budget = Budget(1.0)
+    client.limiter = None
+    monkeypatch.setattr("x_list_sync.time.time", lambda: 100)
+    monkeypatch.setattr("x_list_sync.time.sleep", lambda _: None)
+
+    client.request("GET", "/test", expected_cost=0.01, cost_label="test")
+
+    output = capsys.readouterr().out
+    assert "limit=50, remaining=0, reset=200" in output
+
+
+def successful_response():
+    class Response:
+        status_code = 200
+        ok = True
+        headers = {}
+
+        def json(self):
+            return {"data": {"ok": True}}
+
+    return Response()
+
+
 def test_add_members_skips_forbidden_account(monkeypatch):
     class Client:
         budget = Budget(1.0)
