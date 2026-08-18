@@ -146,10 +146,12 @@ class XClient:
                 limit = response.headers.get("x-rate-limit-limit", "unknown")
                 remaining = response.headers.get("x-rate-limit-remaining", "unknown")
                 reset_label = str(reset) if reset else "unknown"
+                retry_after = response.headers.get("retry-after", "unknown")
+                detail = response.text[:300].replace("\n", " ")
                 print(
                     "X rate limit: "
                     f"limit={limit}, remaining={remaining}, reset={reset_label}; "
-                    f"waiting {delay}s",
+                    f"retry-after={retry_after}; waiting {delay}s; body={detail}",
                     flush=True,
                 )
                 time.sleep(delay)

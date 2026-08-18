@@ -67,10 +67,12 @@ def test_rate_limit_reports_assigned_headers(monkeypatch, capsys):
     class Response:
         status_code = 429
         ok = False
+        text = '{"title":"Too Many Requests"}'
         headers = {
             "x-rate-limit-limit": "50",
             "x-rate-limit-remaining": "0",
             "x-rate-limit-reset": "200",
+            "retry-after": "100",
         }
 
     responses = iter([Response(), successful_response()])
@@ -90,6 +92,8 @@ def test_rate_limit_reports_assigned_headers(monkeypatch, capsys):
 
     output = capsys.readouterr().out
     assert "limit=50, remaining=0, reset=200" in output
+    assert "retry-after=100" in output
+    assert 'body={"title":"Too Many Requests"}' in output
 
 
 def successful_response():
