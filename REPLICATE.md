@@ -47,3 +47,12 @@ The implementation uses X API v2 user-context authentication:
 5. Add missing IDs with `POST /2/lists/{id}/members`, stopping before the configured budget and waiting between 295-write windows.
 
 The projected $80.34 total and default $81 cap use X's August 2026 prices: $0.01 per user or following resource, $0.005 per List-management write, $0.005 per List-member resource, and $0.01 per List creation. Live growth can increase the total, so the sync stops before the cap and can resume after more credit is added.
+
+## Retire construction folders
+
+Alejo wanted all `reproduce` folders under `~/best` transitioned to `REPLICATE.md`.
+
+- Consolidated the existing records and updated references for `reproduce`. Preserved scripts, data and maintained procedures in their own folders.
+- Original tracked files remain in Git at `cdf5a7a84892d7bf19a4d1968dd78bfe9ac6f04e`; a full local backup, including ignored files, is at `/Users/alejo/.local/state/reproduce-migration/2026-09-19-_qyg4u7a/before/tools/active/twitter/x-list-sync`.
+
+Agent session 01a0bb8d-6d31-76d3-ac4e-aca4c5dfce64 · Commits 8142ad5ae707e5ef0257265642423bf19ee08656
